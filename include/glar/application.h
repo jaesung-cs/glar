@@ -15,6 +15,8 @@ public:
 
   void Run();
 
+  void Resized(uint32_t width, uint32_t height);
+
 private:
   uint32_t width_ = 1600;
   uint32_t height_ = 900;

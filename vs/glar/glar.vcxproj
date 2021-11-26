@@ -17,6 +17,10 @@
   <ItemGroup>
     <ClInclude Include="..\..\include\glar\application.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\glar\shader\camera.frag" />
+    <None Include="..\..\src\glar\shader\camera.vert" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>

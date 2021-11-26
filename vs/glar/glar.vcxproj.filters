@@ -13,6 +13,9 @@
     <Filter Include="include\glar">
       <UniqueIdentifier>{e0501fe1-8e45-4ab9-ab12-51b92a406b86}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\glar\shader">
+      <UniqueIdentifier>{b2a6894b-54dd-4f25-b49a-8b925d29e563}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp">
@@ -26,5 +29,13 @@
     <ClInclude Include="..\..\include\glar\application.h">
       <Filter>include\glar</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\src\glar\shader\camera.frag">
+      <Filter>src\glar\shader</Filter>
+    </None>
+    <None Include="..\..\src\glar\shader\camera.vert">
+      <Filter>src\glar\shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -12,10 +12,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\glar\application.cpp" />
+    <ClCompile Include="..\..\src\glar\gl\geometry.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\glar\application.h" />
+    <ClInclude Include="..\..\include\glar\gl\geometry.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\glar\shader\camera.frag" />

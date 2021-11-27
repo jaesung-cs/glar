@@ -16,6 +16,12 @@
     <Filter Include="src\glar\shader">
       <UniqueIdentifier>{b2a6894b-54dd-4f25-b49a-8b925d29e563}</UniqueIdentifier>
     </Filter>
+    <Filter Include="src\glar\gl">
+      <UniqueIdentifier>{39b6fb21-ada0-4ac2-9a0d-9d170c3823f7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="include\glar\gl">
+      <UniqueIdentifier>{3760ae49-6e7d-4c41-b279-a68bea79bf9b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp">
@@ -24,10 +30,16 @@
     <ClCompile Include="..\..\src\glar\application.cpp">
       <Filter>src\glar</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\glar\gl\geometry.cpp">
+      <Filter>src\glar\gl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\glar\application.h">
       <Filter>include\glar</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\glar\gl\geometry.h">
+      <Filter>include\glar\gl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

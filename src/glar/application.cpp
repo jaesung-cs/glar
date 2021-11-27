@@ -17,6 +17,8 @@
 #include <opencv2/videoio.hpp>
 #include <opencv2/opencv.hpp>
 
+#include <glar/gl/geometry.h>
+
 namespace glar
 {
 namespace
@@ -153,29 +155,31 @@ void Application::Run()
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
 
-  // Rect buffer
-  const std::vector<float> rectVertex = {
-    0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f,
-  };
-  const std::vector<uint32_t> rectIndex = {
-    0, 1, 2, 2, 1, 3,
-  };
+  // Rect geometry
+  gl::Geometry rectGeometry(
+    { 0.f, 0.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f },
+    { {0, 2, 2, 0} },
+    { 0, 1, 2, 2, 1, 3 },
+    GL_TRIANGLES
+  );
 
-  GLuint rectVao;
-  glGenVertexArrays(1, &rectVao);
-  glBindVertexArray(rectVao);
-
-  GLuint rectBuffers[2]; // 0: vertex, 1: index
-  glGenBuffers(2, rectBuffers);
-  glBindBuffer(GL_ARRAY_BUFFER, rectBuffers[0]);
-  glBufferData(GL_ARRAY_BUFFER, rectVertex.size() * sizeof(rectVertex[0]), rectVertex.data(), GL_STATIC_DRAW);
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, rectBuffers[1]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, rectIndex.size() * sizeof(rectIndex[0]), rectIndex.data(), GL_STATIC_DRAW);
-
-  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-  glEnableVertexAttribArray(0);
-
-  glBindVertexArray(0);
+  // Axis geometry
+  gl::Geometry axisGeometry(
+    {
+      0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+      1.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+      0.f, 0.f, 0.f, 0.f, 1.f, 0.f,
+      0.f, 1.f, 0.f, 0.f, 1.f, 0.f,
+      0.f, 0.f, 0.f, 0.f, 0.f, 1.f,
+      0.f, 0.f, 1.f, 0.f, 0.f, 1.f,
+    },
+    {
+      {0, 3, 6, 0},
+      {1, 3, 6, 3},
+    },
+    { 0, 1, 2, 3, 4, 5 },
+    GL_LINES
+  );
 
   uint64_t frameCount = 0;
   const auto startTime = std::chrono::high_resolution_clock::now();
@@ -212,8 +216,7 @@ void Application::Run()
       glActiveTexture(GL_TEXTURE0);
       glUniform1i(glGetUniformLocation(cameraShader, "tex"), 0);
 
-      glBindVertexArray(rectVao);
-      glDrawElements(GL_TRIANGLES, rectIndex.size(), GL_UNSIGNED_INT, 0);
+      rectGeometry.draw();
     }
 
     glfwSwapBuffers(window_);
@@ -233,9 +236,6 @@ void Application::Run()
 
   if (cameraTexture)
     glDeleteTextures(1, &cameraTexture);
-
-  glDeleteBuffers(2, rectBuffers);
-  glDeleteVertexArrays(1, &rectVao);
 
   glDeleteProgram(cameraShader);
 

@@ -181,6 +181,10 @@ void Application::Run()
     GL_LINES
   );
 
+  // ArUco dictionary
+  cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
+  cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
+
   uint64_t frameCount = 0;
   const auto startTime = std::chrono::high_resolution_clock::now();
   uint64_t seconds = 0;
@@ -196,6 +200,14 @@ void Application::Run()
     if (vcap.isOpened())
     {
       vcap.read(image);
+
+      // ArUco image detection
+      std::vector<int> markerIds;
+      std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
+      cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+
+      // Draw to image
+      cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
 
       // Move to GL texture
       glBindTexture(GL_TEXTURE_2D, cameraTexture);

@@ -216,7 +216,7 @@ void Application::Run()
   cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
 
   // ArUco marker size
-  constexpr float markerSize = 0.05; // m
+  constexpr float markerSize = 0.042; // 4.2cm
 
   // Video stream
   const std::string videoStreamAddress = "http://192.168.0.12:2225";
@@ -414,7 +414,7 @@ void Application::Run()
 
         // Draw axis
         for (int i = 0; i < rvecs.size(); i++)
-          cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], 0.1);
+          cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], markerSize / 2.f);
 
         // Move to GL texture
         glBindTexture(GL_TEXTURE_2D, cameraTexture);

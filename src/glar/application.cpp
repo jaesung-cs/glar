@@ -233,25 +233,19 @@ void Application::Run()
   cv::Mat distortion;
 
   // The first calibration result
-  /*
-  [474.9396379159643, 0, 295.6886455987841;
-  0, 479.7568856113904, 268.3747071473783;
-  0, 0, 1]
-  [-0.08718103293876581, 0.5801102550706361, 0.02068251001707334, -0.02022431125525433, -1.189943292885548]
-  */
-  cameraMatrix = cv::Mat::zeros(3, 3, CV_32FC1);
-  cameraMatrix.at<float>(0, 0) = 474.9396379159643;
-  cameraMatrix.at<float>(1, 1) = 479.7568856113904;
-  cameraMatrix.at<float>(0, 2) = 295.6886455987841;
-  cameraMatrix.at<float>(1, 2) = 268.3747071473783;
-  cameraMatrix.at<float>(2, 2) = 1.f;
+  cameraMatrix = cv::Mat::zeros(3, 3, CV_64FC1);
+  cameraMatrix.at<double>(0, 0) = 473.7766600392583;
+  cameraMatrix.at<double>(1, 1) = 474.9662247385612;
+  cameraMatrix.at<double>(0, 2) = 314.0060389975553;
+  cameraMatrix.at<double>(1, 2) = 242.821899302888;
+  cameraMatrix.at<double>(2, 2) = 1.f;
 
-  distortion = cv::Mat::zeros(1, 5, CV_32FC1);
-  distortion.at<float>(0) = -0.08718103293876581;
-  distortion.at<float>(1) = 0.5801102550706361;
-  distortion.at<float>(2) = 0.02068251001707334;
-  distortion.at<float>(3) = -0.02022431125525433;
-  distortion.at<float>(4) = -1.189943292885548;
+  distortion = cv::Mat::zeros(1, 5, CV_64FC1);
+  distortion.at<double>(0) = 0.01452802692558459;
+  distortion.at<double>(1) = -0.07787241532742364;
+  distortion.at<double>(2) = 0.003182402256963925;
+  distortion.at<double>(3) = -0.003855926597756357;
+  distortion.at<double>(4) = 0.2134733796822924;
 
   uint64_t frameCount = 0;
   const auto startTime = std::chrono::high_resolution_clock::now();
@@ -269,6 +263,42 @@ void Application::Run()
 
     ImGui::Begin("Control");
 
+    {
+      std::ostringstream ss;
+      ss << "FPS: " << frameCount / elapsed;
+      ImGui::Text(ss.str().c_str());
+    }
+
+    if (ImGui::CollapsingHeader("Calibration parameters", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+      ImGui::Text("Calibration matrix:");
+      for (int i = 0; i < cameraMatrix.rows; i++)
+      {
+        for (int j = 0; j < cameraMatrix.cols; j++)
+        {
+          std::ostringstream ss;
+          ss << cameraMatrix.at<double>(i, j);
+          ImGui::Text(ss.str().c_str());
+          if (j + 1 < cameraMatrix.cols)
+            ImGui::SameLine();
+        }
+      }
+
+      ImGui::Separator();
+
+      ImGui::Text("Distortion parameters:");
+      for (int i = 0; i < distortion.cols; i++)
+      {
+        std::ostringstream ss;
+        ss << distortion.at<double>(0, i);
+        ImGui::Text(ss.str().c_str());
+        if (i + 1 < distortion.cols)
+          ImGui::SameLine();
+      }
+
+      ImGui::Separator();
+    }
+
     if (appMode_ == AppMode::CALIBRATION)
     {
       ImGui::Text("Calibrating, please wait...");
@@ -277,9 +307,7 @@ void Application::Run()
       ImGui::Text(progress.c_str());
 
       if (ImGui::Button("Cancel"))
-      {
         appMode_ = AppMode::DETECTION;
-      }
     }
     else
     {
@@ -305,7 +333,7 @@ void Application::Run()
 
         const auto timeSinceLastCapture = std::chrono::duration<double>(currentTime - calibrationCaptureTime).count();
         const auto count = calibrationCorners.size();
-        if (count * calibrationInterval < timeSinceLastCapture)
+        if (calibrationInterval < timeSinceLastCapture)
         {
           calibrationCaptureTime = currentTime;
 
@@ -384,7 +412,10 @@ void Application::Run()
             const auto repError = cv::aruco::calibrateCameraCharuco(allCharucoCorners, allCharucoIds, charucoBoard_, imgSize,
                 cameraMatrix, distortion);
 
-            std::cout << cameraMatrix << std::endl << distortion << std::endl;
+            std::cout << "Calibration matrix:" << std::endl
+              << cameraMatrix << std::endl
+              << "Distortion parameters:" << std::endl
+              << distortion << std::endl;
 
             appMode_ = AppMode::DETECTION;
 

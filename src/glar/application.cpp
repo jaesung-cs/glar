@@ -328,8 +328,6 @@ void Application::Run()
       }
     }
     
-    ImGui::End();
-
     auto image = vcap.Image();
 
     if (!image.empty())
@@ -494,6 +492,22 @@ void Application::Run()
 
         // TODO: augment scene to image texture
 
+        for (int i = 0; i < tvecs.size(); i++)
+        {
+          cv::Mat rot;
+          cv::Rodrigues(rvecs[i], rot);
+
+          std::ostringstream ss;
+          ss << "Transform:" << std::endl;
+          for (int r = 0; r < 3; r++)
+          {
+            for (int c = 0; c < 3; c++)
+              ss << std::setw(8) << rot.at<double>(r, c) << ' ';
+            ss << std::setw(8) << tvecs[i](r) << std::endl;
+          }
+          ImGui::Text(ss.str().c_str());
+        }
+
         // Move to GL texture
         cameraTexture.Update(image.ptr(), GL_BGR);
       }
@@ -501,10 +515,12 @@ void Application::Run()
       }
     }
 
+    ImGui::End();
+
+    // Draw camera image
     glViewport(0, 0, width_, height_);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Draw camera image
     if (cameraTexture.Valid())
     {
       cameraShader.Use();

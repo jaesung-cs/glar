@@ -113,12 +113,6 @@ void Application::CreateCalibrationBoard()
 
 void Application::Run()
 {
-  // Camera image texture
-  constexpr uint32_t cameraTextureWidth = 640;
-  constexpr uint32_t cameraTextureHeight = 480;
-
-  gl::Texture cameraTexture(cameraTextureWidth, cameraTextureHeight);
-
   const std::string shaderDirpath = "C:\\workspace\\glar\\src\\glar\\shader";
   gl::Shader cameraShader(shaderDirpath, "camera");
 
@@ -183,6 +177,9 @@ void Application::Run()
   distortion.at<double>(2) = 0.003182402256963925;
   distortion.at<double>(3) = -0.003855926597756357;
   distortion.at<double>(4) = 0.2134733796822924;
+
+  // Camera image texture
+  gl::Texture cameraTexture;
 
   uint64_t frameCount = 0;
   const auto startTime = std::chrono::high_resolution_clock::now();
@@ -257,10 +254,20 @@ void Application::Run()
 
     ImGui::End();
 
-    auto image = vcap.image();
+    auto image = vcap.Image();
 
     if (!image.empty())
     {
+      // Resize if window size is different
+      if (width_ != image.cols || height_ != image.rows)
+      {
+        width_ = image.cols;
+        height_ = image.rows;
+        glfwSetWindowSize(window_, width_, height_);
+      }
+
+      cameraTexture.UpdateStorage(image.cols, image.rows);
+
       switch (appMode_)
       {
       case AppMode::CALIBRATION:
@@ -384,8 +391,7 @@ void Application::Run()
           cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], markerSize / 2.f);
 
         // Move to GL texture
-        cameraTexture.Bind();
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cameraTextureWidth, cameraTextureHeight, GL_BGR, GL_UNSIGNED_BYTE, image.ptr());
+        cameraTexture.Update(image.ptr(), GL_BGR);
       }
       break;
       }
@@ -394,13 +400,16 @@ void Application::Run()
     glViewport(0, 0, width_, height_);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Draw image
-    cameraShader.Use();
+    // Draw camera image
+    if (cameraTexture.Valid())
+    {
+      cameraShader.Use();
 
-    cameraTexture.Bind(0);
-    cameraShader.Uniform1i("tex", 0);
+      cameraTexture.Bind(0);
+      cameraShader.Uniform1i("tex", 0);
 
-    rectGeometry.Draw();
+      rectGeometry.Draw();
+    }
 
     // Render dear imgui into screen
     ImGui::Render();

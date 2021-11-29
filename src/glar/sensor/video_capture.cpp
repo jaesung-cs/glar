@@ -58,7 +58,7 @@ VideoCapture::VideoCapture(const std::string& address)
           const auto elapsed = std::chrono::duration<double>(currentTime - streamOpenTime).count();
 
           if (vcap.read(image))
-            updateImage(image);
+            UpdateImage(image);
 
           else
           {
@@ -76,7 +76,7 @@ VideoCapture::~VideoCapture()
   worker_.join();
 }
 
-cv::Mat VideoCapture::image()
+cv::Mat VideoCapture::Image()
 {
   std::unique_lock<std::mutex> guard(mutex_);
   auto result = image_;
@@ -84,7 +84,7 @@ cv::Mat VideoCapture::image()
   return result;
 }
 
-void VideoCapture::updateImage(cv::Mat image)
+void VideoCapture::UpdateImage(cv::Mat image)
 {
   std::unique_lock<std::mutex> guard(mutex_);
   image_ = image;

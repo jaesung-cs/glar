@@ -12,13 +12,16 @@ namespace gl
 class Texture
 {
 public:
-  Texture() = delete;
+  Texture();
   Texture(uint32_t width, uint32_t height);
   ~Texture();
+
+  bool Valid() const;
 
   void Bind();
   void Bind(int index);
 
+  void UpdateStorage(uint32_t width, uint32_t height);
   void Update(void* pixels, GLenum format);
 
 private:

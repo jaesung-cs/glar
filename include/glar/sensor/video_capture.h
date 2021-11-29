@@ -22,10 +22,10 @@ public:
   explicit VideoCapture(const std::string& address);
   ~VideoCapture();
 
-  cv::Mat image();
+  cv::Mat Image();
 
   // Accessed by worker
-  void updateImage(cv::Mat image);
+  void UpdateImage(cv::Mat image);
 
 private:
   std::string videoStreamAddress_;

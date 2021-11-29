@@ -71,12 +71,12 @@ Shader::~Shader()
   glDeleteProgram(program_);
 }
 
-void Shader::use()
+void Shader::Use()
 {
   glUseProgram(program_);
 }
 
-void Shader::uniform1i(const std::string& name, int value)
+void Shader::Uniform1i(const std::string& name, int value)
 {
   glUniform1i(glGetUniformLocation(program_, "tex"), 0);
 }

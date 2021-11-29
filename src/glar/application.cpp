@@ -24,6 +24,7 @@
 
 #include <glar/gl/geometry.h>
 #include <glar/gl/shader.h>
+#include <glar/gl/texture.h>
 #include <glar/sensor/video_capture.h>
 
 namespace glar
@@ -76,8 +77,8 @@ Application::Application()
   // ImGui .ini file location
   io.IniFilename = iniFilepath.c_str();
 
-  createDetectionMarker();
-  createCalibrationBoard();
+  CreateDetectionMarker();
+  CreateCalibrationBoard();
 }
 
 Application::~Application()
@@ -85,7 +86,7 @@ Application::~Application()
   glfwTerminate();
 }
 
-void Application::createDetectionMarker()
+void Application::CreateDetectionMarker()
 {
   // Create ArUco marker
   constexpr int markerId = 23;
@@ -100,7 +101,7 @@ void Application::createDetectionMarker()
   cv::imwrite(imageFilepath, markerImage);
 }
 
-void Application::createCalibrationBoard()
+void Application::CreateCalibrationBoard()
 {
   cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
   charucoBoard_ = cv::aruco::CharucoBoard::create(7, 5, 0.04f, 0.02f, dictionary);
@@ -116,15 +117,7 @@ void Application::Run()
   constexpr uint32_t cameraTextureWidth = 640;
   constexpr uint32_t cameraTextureHeight = 480;
 
-  GLuint cameraTexture;
-  glGenTextures(1, &cameraTexture);
-  glBindTexture(GL_TEXTURE_2D, cameraTexture);
-  glTexStorage2D(GL_TEXTURE_2D, 1, GL_RGB8, cameraTextureWidth, cameraTextureHeight);
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  gl::Texture cameraTexture(cameraTextureWidth, cameraTextureHeight);
 
   const std::string shaderDirpath = "C:\\workspace\\glar\\src\\glar\\shader";
   gl::Shader cameraShader(shaderDirpath, "camera");
@@ -303,8 +296,7 @@ void Application::Run()
           }
 
           // Move to GL texture
-          glBindTexture(GL_TEXTURE_2D, cameraTexture);
-          glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cameraTextureWidth, cameraTextureHeight, GL_BGR, GL_UNSIGNED_BYTE, image.ptr());
+          cameraTexture.Update(image.ptr(), GL_BGR);
 
           // Calibrate if sufficient calibration images are collected
           if (calibrationImages.size() >= requiredCalibrationImages)
@@ -392,7 +384,7 @@ void Application::Run()
           cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], markerSize / 2.f);
 
         // Move to GL texture
-        glBindTexture(GL_TEXTURE_2D, cameraTexture);
+        cameraTexture.Bind();
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, cameraTextureWidth, cameraTextureHeight, GL_BGR, GL_UNSIGNED_BYTE, image.ptr());
       }
       break;
@@ -403,13 +395,12 @@ void Application::Run()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Draw image
-    cameraShader.use();
+    cameraShader.Use();
 
-    glBindTexture(GL_TEXTURE_2D, cameraTexture);
-    glActiveTexture(GL_TEXTURE0);
-    cameraShader.uniform1i("tex", 0);
+    cameraTexture.Bind(0);
+    cameraShader.Uniform1i("tex", 0);
 
-    rectGeometry.draw();
+    rectGeometry.Draw();
 
     // Render dear imgui into screen
     ImGui::Render();
@@ -423,9 +414,6 @@ void Application::Run()
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1s / 120.f);
   }
-
-  if (cameraTexture)
-    glDeleteTextures(1, &cameraTexture);
 
   // TODO: destroy contexts in destructor?
   glfwDestroyWindow(window_);

@@ -16,8 +16,8 @@ public:
   Shader(const std::string& dirpath, const std::string& name);
   ~Shader();
 
-  void use();
-  void uniform1i(const std::string& name, int value);
+  void Use();
+  void Uniform1i(const std::string& name, int value);
 
 private:
   GLuint program_ = 0;

@@ -27,8 +27,8 @@ public:
   void Run();
 
 private:
-  void createDetectionMarker();
-  void createCalibrationBoard();
+  void CreateDetectionMarker();
+  void CreateCalibrationBoard();
 
   uint32_t width_ = 640;
   uint32_t height_ = 480;

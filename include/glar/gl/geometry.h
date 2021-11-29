@@ -25,7 +25,7 @@ public:
   Geometry(const std::vector<float>& vertexBuffer, std::initializer_list<Attribute> attributes, const std::vector<uint32_t>& indexBuffer, GLenum drawMode);
   ~Geometry();
 
-  void draw();
+  void Draw();
 
 private:
   GLuint buffers_[2] = { 0, }; // 0: vertex, 1: index

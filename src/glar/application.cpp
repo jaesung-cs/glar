@@ -286,25 +286,28 @@ void Application::Run()
       }
 
       ImGui::Separator();
-    }
 
-    if (appMode_ == AppMode::CALIBRATION)
-    {
-      ImGui::Text("Calibrating, please wait...");
-
-      const auto progress = std::to_string(calibrationImages.size()) + " / " + std::to_string(requiredCalibrationImages);
-      ImGui::Text(progress.c_str());
-
-      if (ImGui::Button("Cancel"))
-        appMode_ = AppMode::DETECTION;
-    }
-    else
-    {
-      if (ImGui::Button("Calibrate"))
+      // Calibration stage
+      if (appMode_ == AppMode::CALIBRATION)
       {
-        appMode_ = AppMode::CALIBRATION;
-        calibrationCaptureTime = std::chrono::high_resolution_clock::now();
+        ImGui::Text("Calibrating, please wait...");
+
+        const auto progress = std::to_string(calibrationImages.size()) + " / " + std::to_string(requiredCalibrationImages);
+        ImGui::Text(progress.c_str());
+
+        if (ImGui::Button("Cancel"))
+          appMode_ = AppMode::DETECTION;
       }
+      else
+      {
+        if (ImGui::Button("Calibrate"))
+        {
+          appMode_ = AppMode::CALIBRATION;
+          calibrationCaptureTime = std::chrono::high_resolution_clock::now();
+        }
+      }
+
+      ImGui::Separator();
     }
 
     ImGui::End();

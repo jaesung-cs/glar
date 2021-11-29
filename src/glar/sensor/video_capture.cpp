@@ -18,11 +18,10 @@ VideoCapture::VideoCapture(const std::string& address)
       cv::VideoCapture vcap;
       cv::Mat image;
 
-      double fps = 0.;
       std::chrono::high_resolution_clock::time_point streamOpenTime;
 
-      uint64_t seconds = 0;
       bool opened = false;
+      uint64_t frameIndex = 0;
       while (!terminate_)
       {
         using namespace std::chrono_literals;
@@ -32,15 +31,21 @@ VideoCapture::VideoCapture(const std::string& address)
           std::cout << "Opening stream" << std::endl;
           if (vcap.open(videoStreamAddress_))
           {
-            fps = vcap.get(cv::CAP_PROP_FPS);
+            const double targetFps = vcap.get(cv::CAP_PROP_FPS);
 
             // Limit vcap buffer size
             vcap.set(cv::CAP_PROP_BUFFERSIZE, 2);
 
             std::cout << "Video stream opened:" << std::endl
-              << "  FPS: " << fps << std::endl;
+              << "  FPS: " << targetFps << std::endl;
+
+            {
+              std::unique_lock<std::mutex> guard(fpsMutex_);
+              targetFps_ = targetFps;
+            }
 
             streamOpenTime = std::chrono::high_resolution_clock::now();
+            frameIndex = 0;
 
             opened = true;
           }
@@ -58,13 +63,26 @@ VideoCapture::VideoCapture(const std::string& address)
           const auto elapsed = std::chrono::duration<double>(currentTime - streamOpenTime).count();
 
           if (vcap.read(image))
+          {
             UpdateImage(image);
+            frameIndex++;
+          }
 
           else
           {
             vcap = {};
             opened = false;
+            frameIndex = 0;
           }
+        }
+
+        // Update fps
+        const auto currentTime = std::chrono::high_resolution_clock::now();
+        const auto elapsed = std::chrono::duration<double>(currentTime - streamOpenTime).count();
+        const auto fps = frameIndex / elapsed;
+        {
+          std::unique_lock<std::mutex> guard(fpsMutex_);
+          fps_ = fps;
         }
       }
     });
@@ -74,6 +92,18 @@ VideoCapture::~VideoCapture()
 {
   terminate_ = true;
   worker_.join();
+}
+
+double VideoCapture::TargetFps() const
+{
+  std::unique_lock<std::mutex> guard(fpsMutex_);
+  return targetFps_;
+}
+
+double VideoCapture::Fps() const
+{
+  std::unique_lock<std::mutex> guard(fpsMutex_);
+  return fps_;
 }
 
 cv::Mat VideoCapture::Image()

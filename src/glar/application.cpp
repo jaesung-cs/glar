@@ -251,7 +251,10 @@ void Application::Run()
 
     {
       std::ostringstream ss;
-      ss << "FPS: " << frameCount / elapsed;
+      ss
+        << "Graphics FPS: " << frameCount / elapsed << std::endl
+        << "Stream   FPS: " << vcap.TargetFps() << std::endl
+        << "Actual   FPS: " << vcap.Fps();
       ImGui::Text(ss.str().c_str());
     }
 

@@ -22,6 +22,9 @@ public:
   explicit VideoCapture(const std::string& address);
   ~VideoCapture();
 
+  double TargetFps() const;
+  double Fps() const;
+
   cv::Mat Image();
 
   // Accessed by worker
@@ -30,10 +33,14 @@ public:
 private:
   std::string videoStreamAddress_;
 
+  double fps_ = 0.;
+  double targetFps_ = 0.;
+  mutable std::mutex fpsMutex_;
+
   std::thread worker_;
   std::atomic_bool terminate_ = false;
 
-  // Double buffering
+  // TODO: Double buffering
   cv::Mat image_;
   std::mutex mutex_;
 };

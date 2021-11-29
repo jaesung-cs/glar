@@ -41,8 +41,6 @@ void Texture::UpdateStorage(uint32_t width, uint32_t height)
 {
   if (width_ != width || height_ != height)
   {
-    std::cout << "Update storage" << std::endl;
-
     width_ = width;
     height_ = height;
 

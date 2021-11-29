@@ -33,10 +33,74 @@ namespace
 {
 const std::string executableDirpath = "C:\\workspace\\glar\\bin";
 const auto iniFilepath = executableDirpath + "\\imgui.ini";
+const auto calibFilepath = executableDirpath + "\\calib.txt";
 
 void ErrorCallback(int error, const char* description)
 {
   fprintf(stderr, "Error: %s\n", description);
+}
+
+void SaveCalibration(cv::Mat cameraMatrix, cv::Mat distortion)
+{
+  std::ofstream out(calibFilepath);
+
+  for (int r = 0; r < 3; r++)
+  {
+    for (int c = 0; c < 3; c++)
+      out << cameraMatrix.at<double>(r, c) << " ";
+    out << std::endl;
+  }
+
+  for (int i = 0; i < 5; i++)
+    out << distortion.at<double>(i) << ' ';
+  out << std::endl;
+}
+
+void LoadCalibration(cv::Mat& cameraMatrix, cv::Mat& distortion)
+{
+  try
+  {
+    std::ifstream in;
+    in.exceptions(std::ios::failbit);
+    in.open(calibFilepath);
+
+    cameraMatrix = cv::Mat::zeros(3, 3, CV_64FC1);
+    for (int r = 0; r < 3; r++)
+    {
+      for (int c = 0; c < 3; c++)
+        in >> cameraMatrix.at<double>(r, c);
+    }
+
+    distortion = cv::Mat::zeros(1, 5, CV_64FC1);
+    for (int i = 0; i < 5; i++)
+      in >> distortion.at<double>(i);
+
+    std::cout << "Loaded calib.txt:" << std::endl
+      << cameraMatrix << std::endl
+      << distortion << std::endl;
+  }
+  catch (const std::exception& e)
+  {
+    std::cerr << "Failed to load calibration from file (" << calibFilepath << "): " << e.what() << std::endl
+      << "initial values for 640x480" << std::endl;
+
+    cameraMatrix = cv::Mat::zeros(3, 3, CV_64FC1);
+    cameraMatrix.at<double>(0, 0) = 473.7766600392583;
+    cameraMatrix.at<double>(1, 1) = 474.9662247385612;
+    cameraMatrix.at<double>(0, 2) = 314.0060389975553;
+    cameraMatrix.at<double>(1, 2) = 242.821899302888;
+    cameraMatrix.at<double>(2, 2) = 1.f;
+
+    distortion = cv::Mat::zeros(1, 5, CV_64FC1);
+    distortion.at<double>(0) = 0.01452802692558459;
+    distortion.at<double>(1) = -0.07787241532742364;
+    distortion.at<double>(2) = 0.003182402256963925;
+    distortion.at<double>(3) = -0.003855926597756357;
+    distortion.at<double>(4) = 0.2134733796822924;
+
+    // Save the initial calibration file
+    SaveCalibration(cameraMatrix, distortion);
+  }
 }
 }
 
@@ -163,20 +227,8 @@ void Application::Run()
   cv::Mat cameraMatrix;
   cv::Mat distortion;
 
-  // The first calibration result
-  cameraMatrix = cv::Mat::zeros(3, 3, CV_64FC1);
-  cameraMatrix.at<double>(0, 0) = 473.7766600392583;
-  cameraMatrix.at<double>(1, 1) = 474.9662247385612;
-  cameraMatrix.at<double>(0, 2) = 314.0060389975553;
-  cameraMatrix.at<double>(1, 2) = 242.821899302888;
-  cameraMatrix.at<double>(2, 2) = 1.f;
-
-  distortion = cv::Mat::zeros(1, 5, CV_64FC1);
-  distortion.at<double>(0) = 0.01452802692558459;
-  distortion.at<double>(1) = -0.07787241532742364;
-  distortion.at<double>(2) = 0.003182402256963925;
-  distortion.at<double>(3) = -0.003855926597756357;
-  distortion.at<double>(4) = 0.2134733796822924;
+  // The initial calibration matrix
+  LoadCalibration(cameraMatrix, distortion);
 
   // Camera image texture
   gl::Texture cameraTexture;
@@ -359,6 +411,9 @@ void Application::Run()
               << cameraMatrix << std::endl
               << "Distortion parameters:" << std::endl
               << distortion << std::endl;
+
+            // Save to calib file
+            SaveCalibration(cameraMatrix, distortion);
 
             appMode_ = AppMode::DETECTION;
 

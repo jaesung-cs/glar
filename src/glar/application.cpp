@@ -310,6 +310,24 @@ void Application::Run()
       ImGui::Separator();
     }
 
+    if (ImGui::CollapsingHeader("Rendering", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+      if (appMode_ != AppMode::CALIBRATION)
+      {
+        static int modeIndex = 0;
+        ImGui::RadioButton("Detection", &modeIndex, 0);
+        ImGui::RadioButton("Scene", &modeIndex, 1);
+        ImGui::RadioButton("Augment", &modeIndex, 2);
+
+        switch (modeIndex)
+        {
+        case 0: appMode_ = AppMode::DETECTION; break;
+        case 1: appMode_ = AppMode::SCENE; break;
+        case 2: appMode_ = AppMode::AUGMENT; break;
+        }
+      }
+    }
+    
     ImGui::End();
 
     auto image = vcap.Image();
@@ -450,6 +468,31 @@ void Application::Run()
         // Draw axis
         for (int i = 0; i < rvecs.size(); i++)
           cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], markerSize / 2.f);
+
+        // Move to GL texture
+        cameraTexture.Update(image.ptr(), GL_BGR);
+      }
+      break;
+
+      case AppMode::SCENE:
+      {
+        // TODO: draw 3d scene
+      }
+      break;
+
+      case AppMode::AUGMENT:
+      {
+        // ArUco image detection
+        std::vector<int> markerIds;
+        std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
+        cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+
+        // ArUco pose estimationion
+        std::vector<cv::Vec3d> rvecs, tvecs;
+        cv::aruco::estimatePoseSingleMarkers(markerCorners, markerSize, cameraMatrix, distortion,
+          rvecs, tvecs);
+
+        // TODO: augment scene to image texture
 
         // Move to GL texture
         cameraTexture.Update(image.ptr(), GL_BGR);

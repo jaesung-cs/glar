@@ -4,6 +4,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <glm/glm.hpp>
+
 namespace glar
 {
 namespace gl
@@ -76,9 +78,24 @@ void Shader::Use()
   glUseProgram(program_);
 }
 
+void Shader::UniformMatrix4f(const std::string& name, const glm::mat4& m)
+{
+  glUniformMatrix4fv(glGetUniformLocation(program_, name.c_str()), 1, GL_FALSE, &m[0][0]);
+}
+
+void Shader::UniformMatrix3f(const std::string& name, const glm::mat3& m)
+{
+  glUniformMatrix3fv(glGetUniformLocation(program_, name.c_str()), 1, GL_FALSE, &m[0][0]);
+}
+
+void Shader::Uniform4f(const std::string& name, const glm::vec4& v)
+{
+  glUniform4fv(glGetUniformLocation(program_, name.c_str()), 1, &v[0]);
+}
+
 void Shader::Uniform1i(const std::string& name, int value)
 {
-  glUniform1i(glGetUniformLocation(program_, "tex"), 0);
+  glUniform1i(glGetUniformLocation(program_, name.c_str()), value);
 }
 }
 }

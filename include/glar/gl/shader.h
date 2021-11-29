@@ -5,6 +5,8 @@
 
 #include <glad/glad.h>
 
+#include <glm/fwd.hpp>
+
 namespace glar
 {
 namespace gl
@@ -17,6 +19,9 @@ public:
   ~Shader();
 
   void Use();
+  void UniformMatrix4f(const std::string& name, const glm::mat4& m);
+  void UniformMatrix3f(const std::string& name, const glm::mat3& m);
+  void Uniform4f(const std::string& name, const glm::vec4& v);
   void Uniform1i(const std::string& name, int value);
 
 private:

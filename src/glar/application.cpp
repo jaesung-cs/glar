@@ -12,6 +12,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <glm/glm.hpp>
+
 #include <opencv2/core.hpp>
 #include <opencv2/aruco.hpp>
 #include <opencv2/aruco/charuco.hpp>
@@ -129,6 +131,7 @@ Application::Application()
 
   // OpenGL initialization
   glEnable(GL_DEPTH_TEST);
+  glClearDepth(1.f);
   glClearColor(0.75f, 0.75f, 0.75f, 1.f);
 
   // ImGui initialization
@@ -179,6 +182,12 @@ void Application::Run()
 {
   const std::string shaderDirpath = "C:\\workspace\\glar\\src\\glar\\shader";
   gl::Shader cameraShader(shaderDirpath, "camera");
+  gl::Shader colorShader(shaderDirpath, "color");
+
+  // AR matrices
+  constexpr float near = 0.01f;
+  constexpr float far = 10.f;
+  auto model = glm::mat4(1.f);
 
   // Rect geometry
   gl::Geometry rectGeometry(
@@ -490,8 +499,22 @@ void Application::Run()
         cv::aruco::estimatePoseSingleMarkers(markerCorners, markerSize, cameraMatrix, distortion,
           rvecs, tvecs);
 
-        // TODO: augment scene to image texture
+        // Store scene model matrix
+        if (tvecs.size() >= 1)
+        {
+          cv::Mat rot;
+          cv::Rodrigues(rvecs[0], rot);
 
+          for (int r = 0; r < 3; r++)
+          {
+            for (int c = 0; c < 3; c++)
+              model[c][r] = rot.at<double>(r, c) * (markerSize / 2.f);
+            model[3][r] = tvecs[0](r);
+          }
+          model[3][3] = 1.f;
+        }
+
+        // Show transform matrix in UI
         for (int i = 0; i < tvecs.size(); i++)
         {
           cv::Mat rot;
@@ -528,7 +551,29 @@ void Application::Run()
       cameraTexture.Bind(0);
       cameraShader.Uniform1i("tex", 0);
 
+      // Don't write depth mask
+      // TODO: plane depth in shader instead of not writing to depth buffer
+      glDepthMask(GL_FALSE);
       rectGeometry.Draw();
+      glDepthMask(GL_TRUE);
+
+      if (appMode_ == AppMode::AUGMENT)
+      {
+        glm::mat3 intrinsic;
+        for (int r = 0; r < 3; r++)
+        {
+          for (int c = 0; c < 3; c++)
+            intrinsic[c][r] = cameraMatrix.at<double>(r, c);
+        }
+        auto screen = glm::vec4(width_, height_, near, far);
+
+        colorShader.Use();
+        colorShader.UniformMatrix4f("model", model);
+        colorShader.UniformMatrix3f("intrinsic", intrinsic);
+        colorShader.Uniform4f("screen", screen);
+
+        axisGeometry.Draw();
+      }
     }
 
     // Render dear imgui into screen

@@ -28,6 +28,10 @@
   <ItemGroup>
     <None Include="..\..\src\glar\shader\camera.frag" />
     <None Include="..\..\src\glar\shader\camera.vert" />
+    <None Include="..\..\src\glar\shader\color.frag" />
+    <None Include="..\..\src\glar\shader\color.vert" />
+    <None Include="..\..\src\glar\shader\phong.frag" />
+    <None Include="..\..\src\glar\shader\phong.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

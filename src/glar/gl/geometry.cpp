@@ -32,6 +32,7 @@ Geometry::Geometry(const std::vector<float>& vertexBuffer, std::initializer_list
 Geometry::~Geometry()
 {
   glDeleteBuffers(2, buffers_);
+  glDeleteVertexArrays(1, &vao_);
 }
 
 void Geometry::Draw()

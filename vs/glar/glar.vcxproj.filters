@@ -73,5 +73,17 @@
     <None Include="..\..\src\glar\shader\camera.vert">
       <Filter>src\glar\shader</Filter>
     </None>
+    <None Include="..\..\src\glar\shader\phong.frag">
+      <Filter>src\glar\shader</Filter>
+    </None>
+    <None Include="..\..\src\glar\shader\phong.vert">
+      <Filter>src\glar\shader</Filter>
+    </None>
+    <None Include="..\..\src\glar\shader\color.frag">
+      <Filter>src\glar\shader</Filter>
+    </None>
+    <None Include="..\..\src\glar\shader\color.vert">
+      <Filter>src\glar\shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

@@ -13,12 +13,14 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\glar\application.cpp" />
     <ClCompile Include="..\..\src\glar\gl\geometry.cpp" />
+    <ClCompile Include="..\..\src\glar\gl\shader.cpp" />
     <ClCompile Include="..\..\src\glar\sensor\video_capture.cpp" />
     <ClCompile Include="..\..\src\main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\glar\application.h" />
     <ClInclude Include="..\..\include\glar\gl\geometry.h" />
+    <ClInclude Include="..\..\include\glar\gl\shader.h" />
     <ClInclude Include="..\..\include\glar\sensor\video_capture.h" />
   </ItemGroup>
   <ItemGroup>

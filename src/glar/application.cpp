@@ -23,6 +23,7 @@
 #include <imgui_impl_opengl3.h>
 
 #include <glar/gl/geometry.h>
+#include <glar/gl/shader.h>
 #include <glar/sensor/video_capture.h>
 
 namespace glar
@@ -36,42 +37,6 @@ void ErrorCallback(int error, const char* description)
 {
   fprintf(stderr, "Error: %s\n", description);
 }
-
-void ResizeCallback(GLFWwindow* window, int width, int height)
-{
-  const auto app = static_cast<Application*>(glfwGetWindowUserPointer(window));
-  app->Resized(width, height);
-}
-
-GLuint LoadShaderModule(const std::string& shaderFilepath, GLenum shaderStage)
-{
-  std::string code;
-  {
-    std::ifstream in(shaderFilepath);
-    std::stringstream ss;
-    ss << in.rdbuf();
-    code = ss.str();
-  }
-
-  GLuint shader = glCreateShader(shaderStage);
-  const char* codeString = code.c_str();
-  glShaderSource(shader, 1, &codeString, NULL);
-  glCompileShader(shader);
-
-  GLint success;
-  GLchar infoLog[1024];
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-  if (!success)
-  {
-    glGetShaderInfoLog(shader, 1024, NULL, infoLog);
-    std::cout << "Failed to compile shader (" << shaderStage << "), error:" << std::endl
-      << infoLog << std::endl;
-    glDeleteShader(shader);
-    return 0;
-  }
-
-  return shader;
-}
 }
 
 Application::Application()
@@ -83,7 +48,7 @@ Application::Application()
 
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
+  glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
   window_ = glfwCreateWindow(width_, height_, "glar", NULL, NULL);
   if (!window_)
@@ -91,7 +56,6 @@ Application::Application()
 
   // Callbacks
   glfwSetWindowUserPointer(window_, this);
-  glfwSetWindowSizeCallback(window_, ResizeCallback);
 
   glfwMakeContextCurrent(window_);
 
@@ -163,27 +127,7 @@ void Application::Run()
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
   const std::string shaderDirpath = "C:\\workspace\\glar\\src\\glar\\shader";
-  const auto vertexShader = LoadShaderModule(shaderDirpath + "\\camera.vert", GL_VERTEX_SHADER);
-  const auto fragmentShader = LoadShaderModule(shaderDirpath + "\\camera.frag", GL_FRAGMENT_SHADER);
-
-  const auto cameraShader = glCreateProgram();
-  glAttachShader(cameraShader, vertexShader);
-  glAttachShader(cameraShader, fragmentShader);
-  glLinkProgram(cameraShader);
-
-  GLint success;
-  GLchar infoLog[1024];
-  glGetProgramiv(cameraShader, GL_LINK_STATUS, &success);
-  if (!success)
-  {
-    glGetShaderInfoLog(cameraShader, 1024, NULL, infoLog);
-    std::cout << "Failed to link shader program, error:" << std::endl
-      << infoLog << std::endl;
-    glDeleteShader(cameraShader);
-  }
-
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+  gl::Shader cameraShader(shaderDirpath, "camera");
 
   // Rect geometry
   gl::Geometry rectGeometry(
@@ -459,11 +403,11 @@ void Application::Run()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Draw image
-    glUseProgram(cameraShader);
+    cameraShader.use();
 
     glBindTexture(GL_TEXTURE_2D, cameraTexture);
     glActiveTexture(GL_TEXTURE0);
-    glUniform1i(glGetUniformLocation(cameraShader, "tex"), 0);
+    cameraShader.uniform1i("tex", 0);
 
     rectGeometry.draw();
 
@@ -475,12 +419,6 @@ void Application::Run()
 
     frameCount++;
 
-    if (seconds < static_cast<uint64_t>(elapsed))
-    {
-      std::cout << "FPS: " << frameCount / elapsed << std::endl;
-      seconds++;
-    }
-
     // Delay between thread
     using namespace std::chrono_literals;
     std::this_thread::sleep_for(1s / 120.f);
@@ -489,20 +427,11 @@ void Application::Run()
   if (cameraTexture)
     glDeleteTextures(1, &cameraTexture);
 
-  glDeleteProgram(cameraShader);
-
   // TODO: destroy contexts in destructor?
   glfwDestroyWindow(window_);
 
   ImGui_ImplOpenGL3_Shutdown();
   ImGui_ImplGlfw_Shutdown();
   ImGui::DestroyContext();
-}
-
-void Application::Resized(uint32_t width, uint32_t height)
-{
-  std::cout << "Resized " << width << ' ' << height << std::endl;
-  width_ = width;
-  height_ = height;
 }
 }

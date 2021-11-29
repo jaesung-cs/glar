@@ -26,8 +26,6 @@ public:
 
   void Run();
 
-  void Resized(uint32_t width, uint32_t height);
-
 private:
   void createDetectionMarker();
   void createCalibrationBoard();

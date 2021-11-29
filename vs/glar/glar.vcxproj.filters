@@ -42,6 +42,9 @@
     <ClCompile Include="..\..\src\glar\sensor\video_capture.cpp">
       <Filter>src\glar\sensor</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\glar\gl\shader.cpp">
+      <Filter>src\glar\gl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\glar\application.h">
@@ -52,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="..\..\include\glar\sensor\video_capture.h">
       <Filter>include\glar\sensor</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\glar\gl\shader.h">
+      <Filter>include\glar\gl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

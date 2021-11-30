@@ -29,6 +29,7 @@ float random(float a, float b)
 }
 
 FractalGeometry::FractalGeometry(const Fractal& fractal)
+  : fractal_(fractal)
 {
   const auto& curves = fractal.curves();
   const auto& info = fractal.info();
@@ -66,7 +67,7 @@ FractalGeometry::FractalGeometry(const Fractal& fractal)
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
   // Fill the buffer
-  UpdateBuffers(fractal);
+  UpdateAnimation(0.f);
 }
 
 FractalGeometry::~FractalGeometry()
@@ -82,13 +83,13 @@ void FractalGeometry::Draw()
   glBindVertexArray(0);
 }
 
-void FractalGeometry::UpdateBuffers(const Fractal& fractal)
+void FractalGeometry::UpdateAnimation(float animationTime)
 {
   vertexBuffer_.clear();
   indexBuffer_.clear();
 
-  for (const auto& curve : fractal.curves())
-    AppendToBuffer(curve);
+  for (const auto& curve : fractal_.curves())
+    AppendToBuffer(curve, animationTime);
 
   // Move to gl buffer
   glBindBuffer(GL_ARRAY_BUFFER, buffers_[0]);
@@ -102,11 +103,16 @@ void FractalGeometry::UpdateBuffers(const Fractal& fractal)
   indexCount_ = indexBuffer_.size();
 }
 
-void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve)
+void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve, float animationTime)
 {
   const auto indexOffset = vertexBuffer_.size() / 6;
 
   const auto& info = curve.info();
+
+  // Animation time to length
+  constexpr float pi = 3.1415926535897932384626433832795f;
+  constexpr float period = 5.f;
+  const auto length = (-std::cos(2.f * pi * animationTime / period) + 1.f) / 2.f * info.maxLength + 2.f;
 
   // Counter clockwise
   constexpr auto radius = 0.5f;
@@ -117,15 +123,30 @@ void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve)
     glm::vec3(-1.f, 1.f, 0.f) * radius,
   };
 
-  const auto steps = std::max(std::min(info.steps, static_cast<int>(info.maxLength - curve.startOffset)), 1);
+  const auto curveLength = std::min<float>(info.steps, std::max(length - curve.startOffset, 0.f));
+  if (curveLength <= 0.f)
+    return;
 
+  const auto steps = static_cast<int>(curveLength);
+
+  const auto restLength = curveLength - steps;
   glm::mat4 transform = glm::mat4(1.f);
-  glm::vec3 color = glm::vec3(rand01(), rand01(), rand01());
+  glm::vec3 color = glm::vec3(0.5f, 0.5f, 0.5f);
   for (int i = 0; i <= steps; i++)
   {
+    float ringScaleFactor = 1.f;
+
+    // To make tip sharp
+    if (i == steps)
+      ringScaleFactor = restLength;
+
+    // Root
+    if (i == 0 && curve.startOffset == 0.f)
+      ringScaleFactor = 2.f;
+
     for (const auto& ringVertex : ring)
     {
-      const auto v = curve.base * transform * glm::vec4(ringVertex, 1.f);
+      const auto v = curve.base * transform * glm::vec4(ringVertex * ringScaleFactor, 1.f);
 
       vertexBuffer_.push_back(v.x);
       vertexBuffer_.push_back(v.y);
@@ -135,12 +156,24 @@ void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve)
       vertexBuffer_.push_back(color.b);
     }
 
-    transform =
-      glm::translate(glm::vec3(0.f, 0.f, info.height / info.steps))
-      * glm::toMat4(glm::angleAxis(info.curveAngle / info.steps, glm::vec3(1.f, 0.f, 0.f)))
-      * glm::scale(glm::vec3(std::exp(-info.scaleCoeff)))
-      * transform;
+    if (i < steps)
+    {
+      transform =
+        glm::translate(glm::vec3(0.f, 0.f, info.height / info.steps))
+        * glm::toMat4(glm::angleAxis(info.curveAngle / info.steps, glm::vec3(1.f, 0.f, 0.f)))
+        * glm::scale(glm::vec3(std::exp(-info.scaleCoeff)))
+        * transform;
+    }
   }
+
+  // Vertex at end
+  const auto v = glm::vec3(curve.base * transform * glm::vec4(0.f, 0.f, restLength * info.height / info.steps, 1.f));
+  vertexBuffer_.push_back(v.x);
+  vertexBuffer_.push_back(v.y);
+  vertexBuffer_.push_back(v.z);
+  vertexBuffer_.push_back(color.r);
+  vertexBuffer_.push_back(color.g);
+  vertexBuffer_.push_back(color.b);
 
   for (int i = 0; i < steps; i++)
   {
@@ -158,6 +191,18 @@ void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve)
       indexBuffer_.push_back(indexOffset + i * m + j1);
       indexBuffer_.push_back(indexOffset + i * m + j1 + m);
     }
+  }
+
+  // Faces at end
+  for (int j = 0; j < ring.size(); j++)
+  {
+    const auto m = ring.size();
+    const auto j0 = j;
+    const auto j1 = (j + 1) % m;
+
+    indexBuffer_.push_back(indexOffset + steps * m + j0);
+    indexBuffer_.push_back(indexOffset + steps * m + j1);
+    indexBuffer_.push_back(indexOffset + steps * m + m);
   }
 }
 }

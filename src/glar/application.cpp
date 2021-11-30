@@ -231,7 +231,7 @@ void Application::Run()
   constexpr float markerSize = 0.042; // 4.2cm
 
   // Video stream
-  const std::string videoStreamAddress = "http://192.168.0.12:2225";
+  const std::string videoStreamAddress = "http://192.168.0.12:62225";
   sensor::VideoCapture vcap(videoStreamAddress);
 
   // Calibration
@@ -252,6 +252,7 @@ void Application::Run()
 
   uint64_t frameCount = 0;
   const auto startTime = std::chrono::high_resolution_clock::now();
+  auto animationStartTime = std::chrono::high_resolution_clock::now();
   uint64_t seconds = 0;
   while (!glfwWindowShouldClose(window_))
   {
@@ -333,14 +334,16 @@ void Application::Run()
       {
         static int modeIndex = 0;
         ImGui::RadioButton("Detection", &modeIndex, 0);
-        ImGui::RadioButton("Scene", &modeIndex, 1);
-        ImGui::RadioButton("Augment", &modeIndex, 2);
+        if (ImGui::RadioButton("Augment", &modeIndex, 1))
+        {
+          if (modeIndex == 1)
+            animationStartTime = std::chrono::high_resolution_clock::now();
+        }
 
         switch (modeIndex)
         {
         case 0: appMode_ = AppMode::DETECTION; break;
-        case 1: appMode_ = AppMode::SCENE; break;
-        case 2: appMode_ = AppMode::AUGMENT; break;
+        case 1: appMode_ = AppMode::AUGMENT; break;
         }
       }
     }
@@ -489,12 +492,6 @@ void Application::Run()
       }
       break;
 
-      case AppMode::SCENE:
-      {
-        // TODO: draw 3d scene
-      }
-      break;
-
       case AppMode::AUGMENT:
       {
         // ArUco image detection
@@ -520,23 +517,6 @@ void Application::Run()
             model[3][r] = tvecs[0](r);
           }
           model[3][3] = 1.f;
-        }
-
-        // Show transform matrix in UI
-        for (int i = 0; i < tvecs.size(); i++)
-        {
-          cv::Mat rot;
-          cv::Rodrigues(rvecs[i], rot);
-
-          std::ostringstream ss;
-          ss << "Transform:" << std::endl;
-          for (int r = 0; r < 3; r++)
-          {
-            for (int c = 0; c < 3; c++)
-              ss << std::setw(8) << rot.at<double>(r, c) << ' ';
-            ss << std::setw(8) << tvecs[i](r) << std::endl;
-          }
-          ImGui::Text(ss.str().c_str());
         }
 
         // Move to GL texture
@@ -582,6 +562,10 @@ void Application::Run()
         colorShader.Uniform4f("screen", screen);
 
         axisGeometry.Draw();
+
+        // Update fractal animation
+        const auto animationTime = std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - animationStartTime).count();
+        fractalGeometry.UpdateAnimation(animationTime);
 
         // Draw fractal
         phongShader.Use();

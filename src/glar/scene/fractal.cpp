@@ -59,11 +59,11 @@ void Fractal::CreateCurve(float startOffset, const glm::mat4& transform)
       glm::mat4 divisionTransform = glm::mat4(1.f);
 
       // Rotation
-      constexpr auto divisionAngleOffset = -pi / 2.f;
+      constexpr auto divisionAngleOffset = -pi * 2.f / 3.f;
 
       divisionTransform = 
         glm::toMat4(glm::angleAxis(divisionAngle + divisionAngleOffset, glm::vec3(1.f, 0.f, 0.f)))
-        * glm::toMat4(glm::angleAxis(lateralAngle, glm::vec3(0.f, 0.f, 1.f)))
+        * glm::toMat4(glm::angleAxis(lateralAngle, glm::vec3(0.f, 1.f, 0.f)))
         * divisionTransform;
 
       // Float part

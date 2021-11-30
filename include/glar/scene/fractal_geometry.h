@@ -16,11 +16,13 @@ public:
   explicit FractalGeometry(const Fractal& fractal);
   ~FractalGeometry();
 
+  void UpdateAnimation(float animationTime);
   void Draw();
 
 private:
-  void UpdateBuffers(const Fractal& fractal);
-  void AppendToBuffer(const Fractal::Curve& curve);
+  void AppendToBuffer(const Fractal::Curve& curve, float animationTime);
+
+  const Fractal& fractal_;
 
   GLuint vao_;
   GLuint buffers_[2];

@@ -17,7 +17,7 @@ private:
 public:
   struct CreateInfo
   {
-    float height = 10.f;
+    float height = 15.f;
 
     int steps = 5;
     float length = 5.f;
@@ -25,13 +25,13 @@ public:
     float maxLength = 10.f;
     float scaleCoeff = 0.2f; // scale = e^(-l * coeff)
 
-    int divisionCount = 3;
+    int divisionCount = 4;
     float divisionOffsetBegin = 1.f;
-    float divisionOffsetEnd = 3.f;
+    float divisionOffsetEnd = 4.f;
 
     float lateralAngleBegin = pi / 3.f;
-    float lateralAngleEnd = pi / 2.f;
-    float curveAngle = pi * 2.f / 3.f;
+    float lateralAngleEnd = pi * 2.f / 3.f;
+    float curveAngle = pi * 3.f / 4.f;
   };
 
   struct Curve

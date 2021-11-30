@@ -185,6 +185,7 @@ void Application::Run()
   const std::string shaderDirpath = "C:\\workspace\\glar\\src\\glar\\shader";
   gl::Shader cameraShader(shaderDirpath, "camera");
   gl::Shader colorShader(shaderDirpath, "color");
+  gl::Shader phongShader(shaderDirpath, "phong");
 
   // AR matrices
   constexpr float near = 0.01f;
@@ -583,6 +584,11 @@ void Application::Run()
         axisGeometry.Draw();
 
         // Draw fractal
+        phongShader.Use();
+        phongShader.UniformMatrix4f("model", model);
+        phongShader.UniformMatrix3f("intrinsic", intrinsic);
+        phongShader.Uniform4f("screen", screen);
+
         fractalGeometry.Draw();
       }
     }

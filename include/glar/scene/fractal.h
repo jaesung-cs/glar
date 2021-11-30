@@ -25,7 +25,7 @@ public:
     float maxLength = 10.f;
     float scaleCoeff = 0.2f; // scale = e^(-l * coeff)
 
-    int divisionCount = 2;
+    int divisionCount = 3;
     float divisionOffsetBegin = 1.f;
     float divisionOffsetEnd = 3.f;
 

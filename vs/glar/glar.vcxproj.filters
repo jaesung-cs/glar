@@ -103,5 +103,8 @@
     <None Include="..\..\src\glar\shader\color.vert">
       <Filter>src\glar\shader</Filter>
     </None>
+    <None Include="..\..\src\glar\shader\phong.geom">
+      <Filter>src\glar\shader</Filter>
+    </None>
   </ItemGroup>
 </Project>

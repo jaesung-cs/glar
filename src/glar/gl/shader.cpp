@@ -12,6 +12,12 @@ namespace gl
 {
 namespace
 {
+bool FileExists(const std::string& filepath)
+{
+  std::ifstream in(filepath);
+  return in.is_open();
+}
+
 GLuint LoadShaderModule(const std::string& shaderFilepath, GLenum shaderStage)
 {
   std::string code;
@@ -51,6 +57,15 @@ Shader::Shader(const std::string& dirpath, const std::string& name)
   program_ = glCreateProgram();
   glAttachShader(program_, vertexShader);
   glAttachShader(program_, fragmentShader);
+
+  GLuint geometryShader = 0;
+  const auto geomShaderFilepath = dirpath + "\\" + name + ".geom";
+  if (FileExists(geomShaderFilepath))
+  {
+    geometryShader = LoadShaderModule(geomShaderFilepath, GL_GEOMETRY_SHADER);
+    glAttachShader(program_, geometryShader);
+  }
+
   glLinkProgram(program_);
 
   GLint success;
@@ -66,6 +81,9 @@ Shader::Shader(const std::string& dirpath, const std::string& name)
 
   glDeleteShader(vertexShader);
   glDeleteShader(fragmentShader);
+
+  if (geometryShader)
+    glDeleteShader(geometryShader);
 }
 
 Shader::~Shader()

@@ -18,7 +18,6 @@ private:
   {
     CALIBRATION,
     DETECTION,
-    SCENE,
     AUGMENT,
   };
 

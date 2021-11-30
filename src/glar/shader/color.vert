@@ -12,16 +12,15 @@ out vec3 vColor;
 void main() {
   vec3 p = intrinsic * vec3(model * vec4(position, 1.f));
 
-  // Unlike usual perspective projection matrix, linearize depth between near and far
-  // TODO: connection between perspective
+  // Perspective transform, with gl_Position.w = p.z
   const float near = screen.z;
   const float far = screen.w;
-  vec3 ndc = vec3(
-    p.x / p.z / screen.x * 2.f - 1.f,
-    -p.y / p.z / screen.y * 2.f + 1.f,
-    (p.z - near) / (far - near));
-
-  gl_Position = vec4(ndc, 1.f);
+  gl_Position = vec4(
+    p.x / screen.x * 2.f - p.z,
+    -p.y / screen.y * 2.f + p.z,
+    (p.z * (far + near) - 2.f * far * near) / (far - near),
+    p.z
+  );
 
   vColor = color;
 }

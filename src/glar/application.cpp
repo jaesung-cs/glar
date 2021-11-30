@@ -28,6 +28,8 @@
 #include <glar/gl/shader.h>
 #include <glar/gl/texture.h>
 #include <glar/sensor/video_capture.h>
+#include <glar/scene/fractal.h>
+#include <glar/scene/fractal_geometry.h>
 
 namespace glar
 {
@@ -175,7 +177,7 @@ void Application::CreateCalibrationBoard()
   cv::Mat boardImage;
   charucoBoard_->draw(cv::Size(600, 500), boardImage, 10, 1);
 
-  cv::imwrite(executableDirpath + "\\calibration_board.jpg", boardImage);
+  //cv::imwrite(executableDirpath + "\\calibration_board.jpg", boardImage);
 }
 
 void Application::Run()
@@ -214,6 +216,11 @@ void Application::Run()
     { 0, 1, 2, 3, 4, 5 },
     GL_LINES
   );
+
+  // Fractal
+  scene::Fractal::CreateInfo fractalCreateInfo;
+  scene::Fractal fractal(fractalCreateInfo);
+  scene::FractalGeometry fractalGeometry(fractal);
 
   // ArUco dictionary
   cv::Ptr<cv::aruco::DetectorParameters> parameters = cv::aruco::DetectorParameters::create();
@@ -567,12 +574,16 @@ void Application::Run()
         }
         auto screen = glm::vec4(width_, height_, near, far);
 
+        // Draw axis
         colorShader.Use();
         colorShader.UniformMatrix4f("model", model);
         colorShader.UniformMatrix3f("intrinsic", intrinsic);
         colorShader.Uniform4f("screen", screen);
 
         axisGeometry.Draw();
+
+        // Draw fractal
+        fractalGeometry.Draw();
       }
     }
 

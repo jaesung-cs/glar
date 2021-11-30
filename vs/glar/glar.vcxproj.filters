@@ -28,6 +28,12 @@
     <Filter Include="src\glar\sensor">
       <UniqueIdentifier>{64c7e50e-bfb7-4c1c-8729-a61c5005158a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="include\glar\scene">
+      <UniqueIdentifier>{79360f4d-4604-45b2-996c-268207cc5c24}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\glar\scene">
+      <UniqueIdentifier>{310d3a15-6d4e-466f-85a4-83ff9d687df4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\main.cpp">
@@ -48,6 +54,12 @@
     <ClCompile Include="..\..\src\glar\gl\texture.cpp">
       <Filter>src\glar\gl</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\glar\scene\fractal.cpp">
+      <Filter>src\glar\scene</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\glar\scene\fractal_geometry.cpp">
+      <Filter>src\glar\scene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\include\glar\application.h">
@@ -64,6 +76,12 @@
     </ClInclude>
     <ClInclude Include="..\..\include\glar\gl\texture.h">
       <Filter>include\glar\gl</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\glar\scene\fractal.h">
+      <Filter>include\glar\scene</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\include\glar\scene\fractal_geometry.h">
+      <Filter>include\glar\scene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

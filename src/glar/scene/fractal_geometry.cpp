@@ -36,11 +36,13 @@ FractalGeometry::FractalGeometry(const Fractal& fractal)
 
   // 4 vertices for each step, plus 4 base
   const auto curveVertexCount = 4 * (info.steps + 1);
-  const auto maxVertexCount = curves.size() * curveVertexCount;
+  constexpr auto blossomVertexCount = 3 * 100;
+  const auto maxVertexCount = curves.size() * (curveVertexCount + blossomVertexCount);
 
   // 24 indices for each step
   const auto curveIndexCount = 24 * info.steps;
-  const auto maxIndexCount = curves.size() * curveIndexCount;
+  constexpr auto blossomIndexCount = 3 * 100;
+  const auto maxIndexCount = curves.size() * (curveIndexCount + blossomIndexCount);
 
   // 3 for position, 3 for color
   const auto vertexByteSize = 6 * sizeof(float);
@@ -105,7 +107,7 @@ void FractalGeometry::UpdateAnimation(float animationTime)
 
 void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve, float animationTime)
 {
-  const auto indexOffset = vertexBuffer_.size() / 6;
+  auto indexOffset = vertexBuffer_.size() / 6;
 
   const auto& info = curve.info();
 
@@ -131,7 +133,7 @@ void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve, float animatio
 
   const auto restLength = curveLength - steps;
   glm::mat4 transform = glm::mat4(1.f);
-  glm::vec3 color = glm::vec3(0.5f, 0.5f, 0.5f);
+  glm::vec3 color = glm::vec3(0.25f, 0.25f, 0.25f);
   for (int i = 0; i <= steps; i++)
   {
     float ringScaleFactor = 1.f;
@@ -203,6 +205,71 @@ void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve, float animatio
     indexBuffer_.push_back(indexOffset + steps * m + j0);
     indexBuffer_.push_back(indexOffset + steps * m + j1);
     indexBuffer_.push_back(indexOffset + steps * m + m);
+  }
+
+  // Blossoms
+  if (curveLength == steps)
+  {
+    constexpr float blossomDuration = 2.f;
+    constexpr float blossomFrequency = 0.02f;
+    constexpr float blossomSize = 0.75f;
+    constexpr float blossomAngle = 1.f; // Some random angle in radian
+    constexpr float blossomGap = blossomSize / (blossomDuration / blossomFrequency);
+    constexpr float blossomMaxAngle = pi / 4.f;
+
+    const std::vector<glm::vec3> blossomVertices = {
+      glm::vec3(0.f, 0.f, 0.f),
+      glm::vec3(1.f, 0.f, 1.f),
+      glm::vec3(-1.f, 0.f, 1.f),
+    };
+    const std::vector<glm::vec3> blossomColors = {
+      glm::vec3(0.5f, 0.5f, 0.5f),
+      glm::vec3(1.f, 1.f, 1.f),
+      glm::vec3(1.f, 1.f, 1.f),
+    };
+
+    const auto blossomTime = std::min(length - curve.startOffset - info.length, blossomDuration);
+    const auto blossomCount = static_cast<int>(blossomTime / blossomFrequency);
+
+    if (blossomCount > 0)
+    {
+      // Create Z-up
+      const auto position = glm::vec3((curve.base * transform)[3]);
+
+      auto indexOffset = vertexBuffer_.size() / 6;
+      for (int i = 0; i < blossomCount; i++)
+      {
+        const auto distance = blossomGap * i;
+
+        const auto t = static_cast<float>(i) / blossomCount;
+
+        glm::mat4 transform =
+          glm::translate(glm::vec3(position + glm::vec3(0.f, 0.f, distance)))
+          * glm::toMat4(glm::angleAxis(curve.blossomAngles[0], glm::vec3(0.f, 0.f, 1.f)))
+          * glm::toMat4(glm::angleAxis(curve.blossomAngles[1], glm::vec3(1.f, 0.f, 0.f)))
+          * glm::toMat4(glm::angleAxis(blossomAngle * i, glm::vec3(0.f, 0.f, 1.f)))
+          * glm::toMat4(glm::angleAxis(-pi / 3.f, glm::vec3(1.f, 0.f, 0.f)))
+          * glm::scale(glm::vec3(blossomSize * (1.f - t)));
+
+        for (int j = 0; j < blossomVertices.size(); j++)
+        {
+          const auto& blossomVertex = blossomVertices[j];
+          const auto& blossomColor = blossomColors[j];
+
+          const auto v = glm::vec3(transform * glm::vec4(blossomVertex, 1.f));
+          vertexBuffer_.push_back(v.x);
+          vertexBuffer_.push_back(v.y);
+          vertexBuffer_.push_back(v.z);
+          vertexBuffer_.push_back(blossomColor.r);
+          vertexBuffer_.push_back(blossomColor.g);
+          vertexBuffer_.push_back(blossomColor.b);
+        }
+
+        indexBuffer_.push_back(indexOffset + i * 3);
+        indexBuffer_.push_back(indexOffset + i * 3 + 1);
+        indexBuffer_.push_back(indexOffset + i * 3 + 2);
+      }
+    }
   }
 }
 }

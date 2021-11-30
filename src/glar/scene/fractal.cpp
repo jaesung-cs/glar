@@ -27,6 +27,14 @@ float random(float a, float b)
 }
 }
 
+// To randomly set blossom angle
+Fractal::Curve::Curve(const Fractal::CreateInfo& createInfo)
+  : createInfo_(createInfo)
+{
+  blossomAngles[0] = random(0.f, 2.f * pi);
+  blossomAngles[1] = random(0.f, 0.25f * pi);
+}
+
 Fractal::Fractal(const CreateInfo& createInfo)
   : createInfo_(createInfo)
 {

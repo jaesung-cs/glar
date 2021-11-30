@@ -37,13 +37,13 @@ public:
   struct Curve
   {
   public:
-    Curve(const CreateInfo& createInfo)
-      : createInfo_(createInfo) {}
+    Curve(const CreateInfo& createInfo);
 
     const auto& info() const { return createInfo_; }
 
     glm::mat4 base = glm::mat4(1.f);
     float startOffset = 0.f;
+    float blossomAngles[2] = { 0.f, 0.f };
 
   private:
     const CreateInfo& createInfo_;

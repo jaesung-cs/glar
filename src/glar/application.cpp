@@ -216,7 +216,7 @@ void Application::Run()
     },
     { 0, 1, 2, 3, 4, 5 },
     GL_LINES
-  );
+    );
 
   // Fractal
   scene::Fractal::CreateInfo fractalCreateInfo;
@@ -231,8 +231,8 @@ void Application::Run()
   constexpr float markerSize = 0.042; // 4.2cm
 
   // Video stream
-  const std::string videoStreamAddress = "http://192.168.0.12:62225";
-  sensor::VideoCapture vcap(videoStreamAddress);
+  char videoStreamAddress[256] = { 0, };
+  std::unique_ptr<sensor::VideoCapture> vcap;
 
   // Calibration
   std::chrono::high_resolution_clock::time_point calibrationCaptureTime;
@@ -267,12 +267,29 @@ void Application::Run()
 
     ImGui::Begin("Control");
 
+    if (ImGui::CollapsingHeader("Connection", ImGuiTreeNodeFlags_DefaultOpen))
+    {
+      ImGui::InputText("Address", videoStreamAddress, 255);
+
+      ImGui::Text("(ex. http://192.168.0.12:62225)");
+
+      if (ImGui::Button("Connect"))
+        vcap = std::make_unique<sensor::VideoCapture>(videoStreamAddress);
+
+      ImGui::Separator();
+    }
+
     {
       std::ostringstream ss;
-      ss
-        << "Graphics FPS: " << frameCount / elapsed << std::endl
-        << "Stream   FPS: " << vcap.TargetFps() << std::endl
-        << "Actual   FPS: " << vcap.Fps();
+      ss  << "Graphics FPS: " << frameCount / elapsed << std::endl;
+
+      if (vcap)
+      {
+        ss
+          << "Stream   FPS: " << vcap->TargetFps() << std::endl
+          << "Actual   FPS: " << vcap->Fps();
+      }
+
       ImGui::Text(ss.str().c_str());
     }
 
@@ -348,181 +365,184 @@ void Application::Run()
       }
     }
     
-    auto image = vcap.Image();
-
-    if (!image.empty())
+    if (vcap)
     {
-      // Resize if window size is different
-      if (width_ != image.cols || height_ != image.rows)
-      {
-        width_ = image.cols;
-        height_ = image.rows;
-        glfwSetWindowSize(window_, width_, height_);
-      }
+      auto image = vcap->Image();
 
-      cameraTexture.UpdateStorage(image.cols, image.rows);
-
-      switch (appMode_)
+      if (!image.empty())
       {
-      case AppMode::CALIBRATION:
-      {
-        // Add image frame every time interval
-        constexpr double calibrationInterval = 2.; // every 2s
-
-        const auto timeSinceLastCapture = std::chrono::duration<double>(currentTime - calibrationCaptureTime).count();
-        const auto count = calibrationCorners.size();
-        if (calibrationInterval < timeSinceLastCapture)
+        // Resize if window size is different
+        if (width_ != image.cols || height_ != image.rows)
         {
-          calibrationCaptureTime = currentTime;
+          width_ = image.cols;
+          height_ = image.rows;
+          glfwSetWindowSize(window_, width_, height_);
+        }
 
-          // Detect aruco markers
-          std::vector<std::vector<cv::Point2f>> corners, rejected;
-          std::vector<int> ids;
-          cv::aruco::detectMarkers(image, dictionary, corners, ids, parameters, rejected);
+        cameraTexture.UpdateStorage(image.cols, image.rows);
 
-          // Interpolate charuco corners
-          if (!ids.empty())
+        switch (appMode_)
+        {
+        case AppMode::CALIBRATION:
+        {
+          // Add image frame every time interval
+          constexpr double calibrationInterval = 2.; // every 2s
+
+          const auto timeSinceLastCapture = std::chrono::duration<double>(currentTime - calibrationCaptureTime).count();
+          const auto count = calibrationCorners.size();
+          if (calibrationInterval < timeSinceLastCapture)
           {
-            cv::Mat currentCharucoCorners, currentCharucoIds;
-            cv::aruco::interpolateCornersCharuco(corners, ids, image, charucoBoard_,
-              currentCharucoCorners, currentCharucoIds);
+            calibrationCaptureTime = currentTime;
 
-            calibrationImages.push_back(image.clone());
-            calibrationCorners.push_back(corners);
-            calibrationIds.push_back(ids);
+            // Detect aruco markers
+            std::vector<std::vector<cv::Point2f>> corners, rejected;
+            std::vector<int> ids;
+            cv::aruco::detectMarkers(image, dictionary, corners, ids, parameters, rejected);
 
-            // Draw detected markers
-            cv::aruco::drawDetectedMarkers(image, corners);
-            cv::aruco::drawDetectedCornersCharuco(image, currentCharucoCorners, currentCharucoIds);
+            // Interpolate charuco corners
+            if (!ids.empty())
+            {
+              cv::Mat currentCharucoCorners, currentCharucoIds;
+              cv::aruco::interpolateCornersCharuco(corners, ids, image, charucoBoard_,
+                currentCharucoCorners, currentCharucoIds);
+
+              calibrationImages.push_back(image.clone());
+              calibrationCorners.push_back(corners);
+              calibrationIds.push_back(ids);
+
+              // Draw detected markers
+              cv::aruco::drawDetectedMarkers(image, corners);
+              cv::aruco::drawDetectedCornersCharuco(image, currentCharucoCorners, currentCharucoIds);
+            }
+
+            // Move to GL texture
+            cameraTexture.Update(image.ptr(), GL_BGR);
+
+            // Calibrate if sufficient calibration images are collected
+            if (calibrationImages.size() >= requiredCalibrationImages)
+            {
+              // Prepare data for calibration
+              std::vector<std::vector<cv::Point2f>> allCornersConcatenated;
+              std::vector<int> allIdsConcatenated;
+              std::vector<int> markerCounterPerFrame;
+
+              markerCounterPerFrame.reserve(calibrationCorners.size());
+              for (int i = 0; i < calibrationCorners.size(); i++)
+              {
+                markerCounterPerFrame.push_back(calibrationCorners[i].size());
+                for (int j = 0; j < calibrationCorners[i].size(); j++)
+                {
+                  allCornersConcatenated.push_back(calibrationCorners[i][j]);
+                  allIdsConcatenated.push_back(calibrationIds[i][j]);
+                }
+              }
+
+              // Calibrate camera using aruco markers
+              const auto imgSize = calibrationImages[0].size();
+              double arucoRepErr;
+              arucoRepErr = cv::aruco::calibrateCameraAruco(allCornersConcatenated, allIdsConcatenated,
+                markerCounterPerFrame, charucoBoard_, imgSize,
+                cameraMatrix, distortion);
+
+              // Prepare data for charuco calibration
+              int nFrames = (int)calibrationCorners.size();
+              std::vector<cv::Mat> allCharucoCorners;
+              std::vector<cv::Mat> allCharucoIds;
+              std::vector<cv::Mat> filteredImages;
+              allCharucoCorners.reserve(nFrames);
+              allCharucoIds.reserve(nFrames);
+
+              for (int i = 0; i < nFrames; i++)
+              {
+                // Interpolate using camera parameters
+                cv::Mat currentCharucoCorners, currentCharucoIds;
+                cv::aruco::interpolateCornersCharuco(calibrationCorners[i], calibrationIds[i], calibrationImages[i], charucoBoard_,
+                  currentCharucoCorners, currentCharucoIds,
+                  cameraMatrix, distortion);
+
+                allCharucoCorners.push_back(currentCharucoCorners);
+                allCharucoIds.push_back(currentCharucoIds);
+              }
+
+              // Calibrate camera using charuco
+              const auto repError = cv::aruco::calibrateCameraCharuco(allCharucoCorners, allCharucoIds, charucoBoard_, imgSize,
+                cameraMatrix, distortion);
+
+              std::cout << "Calibration matrix:" << std::endl
+                << cameraMatrix << std::endl
+                << "Distortion parameters:" << std::endl
+                << distortion << std::endl;
+
+              // Save to calib file
+              SaveCalibration(cameraMatrix, distortion);
+
+              appMode_ = AppMode::DETECTION;
+
+              // Clear calibration resources
+              calibrationImages.clear();
+              calibrationCorners.clear();
+              calibrationIds.clear();
+            }
+          }
+        }
+        break;
+
+        case AppMode::DETECTION:
+        {
+          // ArUco image detection
+          std::vector<int> markerIds;
+          std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
+          cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+
+          // Draw to image
+          cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
+
+          // ArUco pose estimationion
+          std::vector<cv::Vec3d> rvecs, tvecs;
+          cv::aruco::estimatePoseSingleMarkers(markerCorners, markerSize, cameraMatrix, distortion,
+            rvecs, tvecs);
+
+          // Draw axis
+          for (int i = 0; i < rvecs.size(); i++)
+            cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], markerSize / 2.f);
+
+          // Move to GL texture
+          cameraTexture.Update(image.ptr(), GL_BGR);
+        }
+        break;
+
+        case AppMode::AUGMENT:
+        {
+          // ArUco image detection
+          std::vector<int> markerIds;
+          std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
+          cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
+
+          // ArUco pose estimationion
+          std::vector<cv::Vec3d> rvecs, tvecs;
+          cv::aruco::estimatePoseSingleMarkers(markerCorners, markerSize, cameraMatrix, distortion,
+            rvecs, tvecs);
+
+          // Store scene model matrix
+          if (tvecs.size() >= 1)
+          {
+            cv::Mat rot;
+            cv::Rodrigues(rvecs[0], rot);
+
+            for (int r = 0; r < 3; r++)
+            {
+              for (int c = 0; c < 3; c++)
+                model[c][r] = rot.at<double>(r, c) * (markerSize / 2.f);
+              model[3][r] = tvecs[0](r);
+            }
+            model[3][3] = 1.f;
           }
 
           // Move to GL texture
           cameraTexture.Update(image.ptr(), GL_BGR);
-
-          // Calibrate if sufficient calibration images are collected
-          if (calibrationImages.size() >= requiredCalibrationImages)
-          {
-            // Prepare data for calibration
-            std::vector<std::vector<cv::Point2f>> allCornersConcatenated;
-            std::vector<int> allIdsConcatenated;
-            std::vector<int> markerCounterPerFrame;
-
-            markerCounterPerFrame.reserve(calibrationCorners.size());
-            for (int i = 0; i < calibrationCorners.size(); i++)
-            {
-              markerCounterPerFrame.push_back(calibrationCorners[i].size());
-              for (int j = 0; j < calibrationCorners[i].size(); j++)
-              {
-                allCornersConcatenated.push_back(calibrationCorners[i][j]);
-                allIdsConcatenated.push_back(calibrationIds[i][j]);
-              }
-            }
-
-            // Calibrate camera using aruco markers
-            const auto imgSize = calibrationImages[0].size();
-            double arucoRepErr;
-            arucoRepErr = cv::aruco::calibrateCameraAruco(allCornersConcatenated, allIdsConcatenated,
-              markerCounterPerFrame, charucoBoard_, imgSize,
-              cameraMatrix, distortion);
-
-            // Prepare data for charuco calibration
-            int nFrames = (int)calibrationCorners.size();
-            std::vector<cv::Mat> allCharucoCorners;
-            std::vector<cv::Mat> allCharucoIds;
-            std::vector<cv::Mat> filteredImages;
-            allCharucoCorners.reserve(nFrames);
-            allCharucoIds.reserve(nFrames);
-
-            for (int i = 0; i < nFrames; i++)
-            {
-              // Interpolate using camera parameters
-              cv::Mat currentCharucoCorners, currentCharucoIds;
-              cv::aruco::interpolateCornersCharuco(calibrationCorners[i], calibrationIds[i], calibrationImages[i], charucoBoard_,
-                currentCharucoCorners, currentCharucoIds,
-                cameraMatrix, distortion);
-
-              allCharucoCorners.push_back(currentCharucoCorners);
-              allCharucoIds.push_back(currentCharucoIds);
-            }
-
-            // Calibrate camera using charuco
-            const auto repError = cv::aruco::calibrateCameraCharuco(allCharucoCorners, allCharucoIds, charucoBoard_, imgSize,
-                cameraMatrix, distortion);
-
-            std::cout << "Calibration matrix:" << std::endl
-              << cameraMatrix << std::endl
-              << "Distortion parameters:" << std::endl
-              << distortion << std::endl;
-
-            // Save to calib file
-            SaveCalibration(cameraMatrix, distortion);
-
-            appMode_ = AppMode::DETECTION;
-
-            // Clear calibration resources
-            calibrationImages.clear();
-            calibrationCorners.clear();
-            calibrationIds.clear();
-          }
         }
-      }
-      break;
-
-      case AppMode::DETECTION:
-      {
-        // ArUco image detection
-        std::vector<int> markerIds;
-        std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
-        cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
-
-        // Draw to image
-        cv::aruco::drawDetectedMarkers(image, markerCorners, markerIds);
-
-        // ArUco pose estimationion
-        std::vector<cv::Vec3d> rvecs, tvecs;
-        cv::aruco::estimatePoseSingleMarkers(markerCorners, markerSize, cameraMatrix, distortion,
-          rvecs, tvecs);
-
-        // Draw axis
-        for (int i = 0; i < rvecs.size(); i++)
-          cv::aruco::drawAxis(image, cameraMatrix, distortion, rvecs[i], tvecs[i], markerSize / 2.f);
-
-        // Move to GL texture
-        cameraTexture.Update(image.ptr(), GL_BGR);
-      }
-      break;
-
-      case AppMode::AUGMENT:
-      {
-        // ArUco image detection
-        std::vector<int> markerIds;
-        std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;
-        cv::aruco::detectMarkers(image, dictionary, markerCorners, markerIds, parameters, rejectedCandidates);
-
-        // ArUco pose estimationion
-        std::vector<cv::Vec3d> rvecs, tvecs;
-        cv::aruco::estimatePoseSingleMarkers(markerCorners, markerSize, cameraMatrix, distortion,
-          rvecs, tvecs);
-
-        // Store scene model matrix
-        if (tvecs.size() >= 1)
-        {
-          cv::Mat rot;
-          cv::Rodrigues(rvecs[0], rot);
-
-          for (int r = 0; r < 3; r++)
-          {
-            for (int c = 0; c < 3; c++)
-              model[c][r] = rot.at<double>(r, c) * (markerSize / 2.f);
-            model[3][r] = tvecs[0](r);
-          }
-          model[3][3] = 1.f;
+        break;
         }
-
-        // Move to GL texture
-        cameraTexture.Update(image.ptr(), GL_BGR);
-      }
-      break;
       }
     }
 

@@ -114,7 +114,7 @@ void FractalGeometry::AppendToBuffer(const Fractal::Curve& curve, float animatio
   // Animation time to length
   constexpr float pi = 3.1415926535897932384626433832795f;
   constexpr float period = 5.f;
-  const auto length = (-std::cos(2.f * pi * animationTime / period) + 1.f) / 2.f * info.maxLength + 2.f;
+  const auto length = (-std::cos(2.f * pi * animationTime / period) + 1.f) / 2.f * (info.maxLength + 2.f);
 
   // Counter clockwise
   constexpr auto radius = 0.5f;

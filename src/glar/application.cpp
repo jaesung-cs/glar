@@ -177,7 +177,7 @@ void Application::CreateCalibrationBoard()
   cv::Mat boardImage;
   charucoBoard_->draw(cv::Size(600, 500), boardImage, 10, 1);
 
-  //cv::imwrite(executableDirpath + "\\calibration_board.jpg", boardImage);
+  cv::imwrite(executableDirpath + "\\calibration_board.jpg", boardImage);
 }
 
 void Application::Run()
